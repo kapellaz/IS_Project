@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -17,15 +19,21 @@ public class Main {
     static WebClient.Builder webClientBuilder = WebClient.builder();
     static WebClient webClient = webClientBuilder.build();
 
+    static Scheduler s = Schedulers.newParallel("parallel-scheduler", 4);
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args){
+
         getOwnersNameAndPhone().subscribe(System.out::println);
         getTotalNumberOfPets().subscribe(System.out::println);
         getTotalNumberOfDogs().subscribe(System.out::println);
         getAnimalsWithWeightGreaterThan(10).subscribe(System.out::println);
         //getNameOfEldestPet().subscribe(System.out::println);
-        sleep(2000);
+        s.dispose();
     }
+
+
+
+
 
 
     //ex1
@@ -35,6 +43,7 @@ public class Main {
                 .retrieve()
                 .bodyToFlux(Owner.class)
                 .retry(3)
+                .subscribeOn(s)
                 .map(o -> o.getName() + " " + o.getTelephone_number());
     }
 
@@ -45,6 +54,8 @@ public class Main {
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
                 .bodyToFlux(Pet.class)
+                .subscribeOn(s)
+                .log()
                 .count();
     }
 
@@ -57,6 +68,8 @@ public class Main {
                 .retrieve()
                 .bodyToFlux(Pet.class)
                 .filter(p -> p.getSpecies().equals("Dog"))
+                .subscribeOn(s)
+                .log()
                 .count();
     }
 
@@ -69,6 +82,8 @@ public class Main {
                 .retrieve()
                 .bodyToFlux(Pet.class)
                 .filter(p -> p.getWeight() > weight)
+                .subscribeOn(s)
+                .log()
                 .sort((p1, p2) -> p1.getWeight() - p2.getWeight());
     }
 
@@ -84,6 +99,7 @@ public class Main {
                 .bodyToFlux(Pet.class)
                 .sort((p1, p2) -> p1.getBirthday().compareTo(p2.getBirthday()))
                 .last()
+                .log()
                 .map(Pet::getName);
     }
 
