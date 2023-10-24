@@ -2,15 +2,11 @@ package com.example.client;
 
 import com.example.client.entidades.Owner;
 import com.example.client.entidades.Pet;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
-
-import java.io.FileWriter;
-import java.io.IOException;
 
 import static java.lang.Thread.sleep;
 
