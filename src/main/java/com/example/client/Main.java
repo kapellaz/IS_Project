@@ -8,6 +8,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.Date;
+
 import static java.lang.Thread.sleep;
 
 public class Main {
@@ -17,13 +19,15 @@ public class Main {
 
     static Scheduler s = Schedulers.newParallel("parallel-scheduler", 4);
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws InterruptedException {
 
-        getOwnersNameAndPhone().subscribe(System.out::println);
-        getTotalNumberOfPets().subscribe(System.out::println);
-        getTotalNumberOfDogs().subscribe(System.out::println);
-        getAnimalsWithWeightGreaterThan(10).subscribe(System.out::println);
-        //getNameOfEldestPet().subscribe(System.out::println);
+      //  getOwnersNameAndPhone().subscribe(System.out::println);
+      //  getTotalNumberOfPets().subscribe(System.out::println);
+     //   getTotalNumberOfDogs().subscribe(System.out::println);
+      //  getAnimalsWithWeightGreaterThan(10).subscribe(System.out::println);
+
+        getNameOfEldestPet().subscribe(System.out::println);
+        sleep(5000);
         s.dispose();
     }
 
@@ -71,7 +75,6 @@ public class Main {
 
 
     //ex4
-
     public static Flux<Pet> getAnimalsWithWeightGreaterThan(Integer weight){
         return webClient.get()
                 .uri(URL + "/pet/getAllPets")
@@ -93,12 +96,15 @@ public class Main {
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
                 .bodyToFlux(Pet.class)
-                .sort((p1, p2) -> p1.getBirthday().compareTo(p2.getBirthday()))
+                .sort((p1, p2) -> p2.getBirthdate().compareTo(p1.getBirthdate()))
                 .last()
                 .log()
                 .map(Pet::getName);
     }
 
+
+
     //ex7
+
 
 }

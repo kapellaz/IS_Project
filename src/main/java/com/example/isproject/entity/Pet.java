@@ -1,5 +1,6 @@
 package com.example.isproject.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,7 +9,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-import java.time.LocalDate;
+import java.sql.Date;
+
 
 @Table(value = "pet")
 @Builder
@@ -22,8 +24,9 @@ public class Pet {
     private String name;
     @Column(value = "species")
     private String species;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     @Column(value = "birthdate")
-    private LocalDate birthdate;
+    private Date birthdate;
     @Column(value = "weight")
     private Integer weight;
     @Column(value = "owner_id")
