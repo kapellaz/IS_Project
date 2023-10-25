@@ -21,7 +21,7 @@ public class PetService {
         return petRepo.findAll();
     }
 
-    public Mono<Pet> getPetById(Integer id){
+    public Mono<Pet> getPetById(Long id){
         return petRepo.findById(id);
     }
 

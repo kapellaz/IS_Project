@@ -24,7 +24,7 @@ public class PetController {
     }
 
     @GetMapping("/getPet/{id}")
-    public Mono<Pet> getSpecificPet(@PathVariable Integer id){
+    public Mono<Pet> getSpecificPet(@PathVariable Long id){
         return petService.getPetById(id);
     }
 
