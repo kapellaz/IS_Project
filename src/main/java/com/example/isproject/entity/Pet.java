@@ -30,5 +30,5 @@ public class Pet {
     @Column(value = "weight")
     private Integer weight;
     @Column(value = "owner_id")
-    private Long owner_id;
+    private Integer owner_id;
 }

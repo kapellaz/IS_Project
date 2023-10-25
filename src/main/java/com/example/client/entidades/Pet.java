@@ -21,5 +21,5 @@ public class Pet {
 
     private Date birthdate;
     private Integer weight;
-    private Long owner_id;
+    private Integer owner_id;
 }
