@@ -44,4 +44,10 @@ public class OwnerController {
         return owner_service.deleteOwner(id);
     }
 
+    @PutMapping("/updateOwner/{id}")
+    public Mono<Owner> updateOwner(@PathVariable Integer id, @RequestBody Owner owner){
+        logger.info("Updating owner with id: " + id);
+        return owner_service.updateOwner(id, owner);
+    }
+
 }

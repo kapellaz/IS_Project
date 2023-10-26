@@ -30,4 +30,13 @@ public class OwnerService {
     public Mono<Void> deleteOwner(Integer id) {
         return ownerRepo.deleteById(id);
     }
+
+    public Mono<Owner> updateOwner(Integer id, Owner owner) {
+        return ownerRepo.findById(id)
+                .flatMap(existingOwner -> {
+                    existingOwner.setName(owner.getName());
+                    existingOwner.setTelephone_number(owner.getTelephone_number());
+                    return ownerRepo.save(existingOwner);
+                });
+    }
 }

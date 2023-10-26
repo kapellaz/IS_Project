@@ -4,10 +4,7 @@ package com.example.isproject.controller;
 import lombok.Builder;
 import com.example.isproject.entity.Pet;
 import com.example.isproject.service.PetService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -36,6 +33,22 @@ public class PetController {
         return petService.getPetById(id);
     }
 
+    @PostMapping("/createPet")
+    public Mono<Pet> savePet(@RequestBody Pet pet){
+        logger.info("Creating pet");
+        return petService.createPet(pet);
+    }
 
+    @DeleteMapping("/deletePet/{id}")
+    public Mono<Void> deletePet(@PathVariable Long id){
+        logger.info("Deleting pet with id: " + id);
+        return petService.deletePet(id);
+    }
+
+    @PutMapping("/updatePet/{id}")
+    public Mono<Pet> updatePet(@PathVariable Long id, @RequestBody Pet pet){
+        logger.info("Updating pet with id: " + id);
+        return petService.updatePet(id, pet);
+    }
 }
 

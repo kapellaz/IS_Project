@@ -25,4 +25,21 @@ public class PetService {
         return petRepo.findById(id);
     }
 
+    public Mono<Pet> createPet(Pet pet) {
+        return petRepo.save(pet);
+    }
+
+    public Mono<Void> deletePet(Long id) {
+        return petRepo.deleteById(id);
+    }
+
+    public Mono<Pet> updatePet(Long id, Pet pet) {
+        return petRepo.findById(id)
+                .flatMap(existingPet -> {
+                    existingPet.setName(pet.getName());
+                    existingPet.setBirthdate(pet.getBirthdate());
+                    existingPet.setOwner_id(pet.getOwner_id());
+                    return petRepo.save(existingPet);
+                });
+    }
 }
