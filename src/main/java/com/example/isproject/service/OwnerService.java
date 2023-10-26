@@ -22,4 +22,12 @@ public class OwnerService {
     public Mono<Owner> getOwnerById(Integer id){
         return ownerRepo.findById(id);
     }
+
+    public Mono<Owner> createOwner(Owner owner) {
+        return ownerRepo.save(owner);
+    }
+
+    public Mono<Void> deleteOwner(Integer id) {
+        return ownerRepo.deleteById(id);
+    }
 }
