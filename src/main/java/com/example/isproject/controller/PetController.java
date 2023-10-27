@@ -9,7 +9,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,32 +20,42 @@ public class PetController {
 
     private final PetService petService;
     static final Logger logger = LoggerFactory.getLogger(PetController.class);
+
     @GetMapping("/getAllPets")
-    public Flux<Pet> getAllPets(){
+    public Flux<Pet> getAllPets() {
         logger.info("Getting all pets");
         return petService.getAllPets();
     }
 
     @GetMapping("/getPet/{id}")
-    public Mono<Pet> getSpecificPet(@PathVariable Long id){
+    public Mono<Pet> getSpecificPet(@PathVariable Long id) {
         logger.info("Getting pet with id: " + id);
         return petService.getPetById(id);
     }
 
     @PostMapping("/createPet")
-    public Mono<Pet> savePet(@RequestBody Pet pet){
+    public Mono<Pet> savePet(@RequestBody Pet pet) {
         logger.info("Creating pet");
+
         return petService.createPet(pet);
     }
 
     @DeleteMapping("/deletePet/{id}")
-    public Mono<Void> deletePet(@PathVariable Long id){
+    public Mono<Void> deletePet(@PathVariable Long id) {
         logger.info("Deleting pet with id: " + id);
-        return petService.deletePet(id);
+        return petService
+                .deletePet(id)
+                .doOnSuccess((throwable -> {
+                    logger.info("Pet with id: " + id + " deleted!");
+                }))
+                .doOnError(throwable ->
+                {
+                    logger.error("Pet with id: " + id + "not deleted");
+                });
     }
 
     @PutMapping("/updatePet/{id}")
-    public Mono<Pet> updatePet(@PathVariable Long id, @RequestBody Pet pet){
+    public Mono<Pet> updatePet(@PathVariable Long id, @RequestBody Pet pet) {
         logger.info("Updating pet with id: " + id);
         return petService.updatePet(id, pet);
     }

@@ -20,32 +20,38 @@ public class OwnerController {
 
     static final Logger logger = LoggerFactory.getLogger(OwnerController.class);
     private final OwnerService owner_service;
+
     @GetMapping("/getAllOwners")
-    public Flux<Owner> getAllOwners(){
+    public Flux<Owner> getAllOwners() {
         logger.info("Getting all owners");
         return owner_service.getAllOwners();
     }
 
     @GetMapping("/getOwner/{id}")
-    public Mono<Owner> getSpecificOwner(@PathVariable Integer id){
+    public Mono<Owner> getSpecificOwner(@PathVariable Integer id) {
         logger.info("Getting owner with id: " + id);
         return owner_service.getOwnerById(id);
     }
 
     @PostMapping("/createOwner")
-    public Mono<Owner> saveEmployee(@RequestBody Owner owner){
+    public Mono<Owner> saveEmployee(@RequestBody Owner owner) {
         logger.info("Creating owner");
         return owner_service.createOwner(owner);
     }
 
+
+    //tentar colocar aqui um logger no caso de não retornar nada
     @DeleteMapping("/deleteOwner/{id}")
-    public Mono<Void> deleteOwner(@PathVariable Integer id){
+    public Mono<Void> deleteOwner(@PathVariable Integer id) {
         logger.info("Deleting owner with id: " + id);
         return owner_service.deleteOwner(id);
+
+
     }
 
+
     @PutMapping("/updateOwner/{id}")
-    public Mono<Owner> updateOwner(@PathVariable Integer id, @RequestBody Owner owner){
+    public Mono<Owner> updateOwner(@PathVariable Integer id, @RequestBody Owner owner) {
         logger.info("Updating owner with id: " + id);
         return owner_service.updateOwner(id, owner);
     }
