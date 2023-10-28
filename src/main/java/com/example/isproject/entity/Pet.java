@@ -9,7 +9,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-import java.sql.Date;
+
+import java.time.LocalDate;
 
 
 @Table(value = "pet")
@@ -26,7 +27,7 @@ public class Pet {
     private String species;
     @JsonFormat(pattern = "yyyy-MM-dd")
     @Column(value = "birthdate")
-    private Date birthdate;
+    private LocalDate birthdate;
     @Column(value = "weight")
     private Integer weight;
     @Column(value = "owner_id")
