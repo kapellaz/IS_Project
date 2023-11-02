@@ -1,9 +1,0 @@
-Proprietário ID: 2, Média de Peso: 11.8, Desvio Padrão de Peso: 4.919349550499538
-Proprietário ID: 6, Média de Peso: 11.2, Desvio Padrão de Peso: 4.494441010848846
-Proprietário ID: 10, Média de Peso: 12.571428571428571, Desvio Padrão de Peso: 6.241184258807053
-Proprietário ID: 7, Média de Peso: 13.2, Desvio Padrão de Peso: 1.9235384061671346
-Proprietário ID: 1, Média de Peso: 10.4, Desvio Padrão de Peso: 2.701851217221259
-Proprietário ID: 3, Média de Peso: 14.2, Desvio Padrão de Peso: 5.263078946776307
-Proprietário ID: 4, Média de Peso: 11.4, Desvio Padrão de Peso: 2.073644135332772
-Proprietário ID: 5, Média de Peso: 9.75, Desvio Padrão de Peso: 4.573474244670748
-Proprietário ID: 9, Média de Peso: 9.5, Desvio Padrão de Peso: 4.949747468305833

@@ -2,6 +2,7 @@ package com.example.client;
 
 import com.example.client.entidades.Owner;
 import com.example.client.entidades.Pet;
+import com.example.client.entidades.PetStatistics;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -16,6 +17,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Semaphore;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
@@ -26,25 +28,37 @@ public class Main {
     static WebClient.Builder webClientBuilder = WebClient.builder();
     static WebClient webClient = webClientBuilder.build();
 
+    private static final Semaphore fileWriteSemaphore = new Semaphore(1);
+    private static final Semaphore programSemaphore = new Semaphore(0);
+    private static int classesProcessed = 0;
     static Scheduler s = Schedulers.newParallel("parallel-scheduler", 4);
 
     public static void main(String[] args) throws InterruptedException {
         LimpezaFicheiros();
-        getOwnersNameAndPhone().subscribe(s-> enviaFile(s, 1));
-        getTotalNumberOfPets().subscribe(s-> enviaFile(s, 2));
-        getTotalNumberOfDogs().subscribe(s-> enviaFile(s, 3));
-        getAnimalsWithWeightGreaterThan(10).subscribe(s-> enviaFile(s, 4));
-        getAverageStandardDeviationsOfAnimalWeights().subscribe(s-> enviaFile(s, 5));
-        getNameOfEldestPet().subscribe(s-> enviaFile(s, 6));
-        calculateAverageWeightOfPetsWithOwnersHavingMoreThanOnePet().subscribe(s-> enviaFile(s, 7));
-        NameOfOwnerandNumberOfRespectivePets().subscribe(s-> enviaFile(s, 8));
-        NameOfOwnerandNameOfRespectivePets().subscribe(s-> enviaFile(s,9));
-        sleep(5000);
+        Semaphore semaphore = new Semaphore(0);
+        getOwnersNameAndPhone().subscribe(s-> {enviaFile(s, 1); checkAndReleaseSemaphore(semaphore);});
+        getTotalNumberOfPets().subscribe(s-> {enviaFile(s, 2);checkAndReleaseSemaphore(semaphore);});
+        getTotalNumberOfDogs().subscribe(s-> {enviaFile(s, 3);checkAndReleaseSemaphore(semaphore);});
+        getAnimalsWithWeightGreaterThan(10).subscribe(s-> {enviaFile(s, 4);checkAndReleaseSemaphore(semaphore);});
+        getAverageStandardDeviationsOfAnimalWeights().subscribe(s-> {enviaFile(s, 5);checkAndReleaseSemaphore(semaphore);});
+        getNameOfEldestPet().subscribe(s-> {enviaFile(s, 6);checkAndReleaseSemaphore(semaphore);});
+        calculateAverageWeightOfPetsWithOwnersHavingMoreThanOnePet().subscribe(s-> {enviaFile(s, 7);checkAndReleaseSemaphore(semaphore);});
+        NameOfOwnerandNumberOfRespectivePets().subscribe(s-> {enviaFile(s, 8);checkAndReleaseSemaphore(semaphore);});
+        NameOfOwnerandNameOfRespectivePets().subscribe(s-> {enviaFile(s,9);checkAndReleaseSemaphore(semaphore);});
+        semaphore.acquire();
         s.dispose();
+
+
+        //sleep(1000);
+
     }
 
 
-
+    private static void checkAndReleaseSemaphore(Semaphore semaphore) {
+        if (fileWriteSemaphore.availablePermits() == 1) {
+            semaphore.release();
+        }
+    }
 
 
     //ex1
@@ -54,7 +68,6 @@ public class Main {
                 .retrieve()
                 .bodyToFlux(Owner.class)
                 .retry(3)
-                .subscribeOn(s)
                 .map(o -> o.getName() + " " + o.getTelephone_number());
     }
 
@@ -65,7 +78,6 @@ public class Main {
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
                 .bodyToFlux(Pet.class)
-                .subscribeOn(s)
                 .log()
                 .count();
     }
@@ -79,7 +91,6 @@ public class Main {
                 .retrieve()
                 .bodyToFlux(Pet.class)
                 .filter(p -> p.getSpecies().equals("Dog"))
-                .subscribeOn(s)
                 .log()
                 .count();
     }
@@ -92,47 +103,27 @@ public class Main {
                 .retrieve()
                 .bodyToFlux(Pet.class)
                 .filter(p -> p.getWeight() > weight)
-                .subscribeOn(s)
+
                 .log()
                 .sort((p1, p2) -> p1.getWeight() - p2.getWeight());
     }
 
     //ex5
 
-    public static Mono<String> getAverageStandardDeviationsOfAnimalWeights(){
+    public static Mono<String> getAverageStandardDeviationsOfAnimalWeights() {
         return webClient.get()
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
                 .bodyToFlux(Pet.class)
-                .collectList()
-                .flatMap(pets -> {
 
-                    double totalWeight = 0;
-                    int count = 0;
-
-                    //soma total dos pesos
-                    for (Pet pet : pets) {
-                        totalWeight += pet.getWeight();
-                        count++;
-                    }
-
-                    //media dos pesos
-                    double averageWeight = totalWeight / count;
-
-                    // Calcular o desvio padrão dos pesos
-                    double sumOfSquares = 0;
-                    for (Pet pet : pets) {
-                        sumOfSquares += Math.pow(pet.getWeight() - averageWeight, 2);
-                    }
-                    double standardDeviation = Math.sqrt(sumOfSquares / count);
-
-                    // resultado em string(penso que pode ser assim)
-                    String result = "Média de pesos: " + averageWeight + ", Desvio Padrão: " + standardDeviation;
-
-                    return Mono.just(result);
+                .collect(() -> new PetStatistics(0, 0, 0), (petStatistics, pet) -> {
+                    double weight = pet.getWeight();
+                    petStatistics.totalWeight += weight;
+                    petStatistics.count++;
+                    petStatistics.sumOfSquares += Math.pow(weight - petStatistics.averageWeight(), 2);
                 })
+                .map(PetStatistics::result)
                 .log();
-
     }
 
 
@@ -143,6 +134,7 @@ public class Main {
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
                 .bodyToFlux(Pet.class)
+
                 .sort((p1, p2) -> p2.getBirthdate().compareTo(p1.getBirthdate()))
                 .last()
                 .log()
@@ -183,9 +175,21 @@ public class Main {
                             .map(Pet::getWeight);
 
                     return petWeights
-                            .collect(DescriptiveStatistics::new, DescriptiveStatistics::addValue)
-                            .map(statistics -> Tuples.of(ownerId, statistics.getMean(), statistics.getStandardDeviation()));
-                });
+                            .reduce(
+                                    new double[]{0.0, 0.0, 0},
+                                    (stats, weight) -> {
+                                        stats[0] += weight;
+                                        stats[1] += weight * weight;
+                                        stats[2]++;
+                                        return stats;
+                                    }
+                            )
+                            .map(stats -> {
+                                double mean = stats[0] / stats[2];
+                                double variance = (stats[1] / stats[2]) - (mean * mean);
+                                double stdDev = Math.sqrt(variance);
+                                return Tuples.of(ownerId, mean, stdDev);
+                            });   });
 
         return statisticsByOwner.map(tuple -> {
             Integer ownerId = tuple.getT1();
@@ -208,22 +212,21 @@ public class Main {
                 .uri(URL + "/owner/getAllOwners")
                 .retrieve().bodyToFlux(Owner.class);
 
-        // ligação dos owners com os seus pets --> ATENÇÃO VER A QUESTÃO DO CollectList
-        Flux<Tuple2<String, List<Long>>> ownerAndPetIdsFlux = owners
+
+        Flux<Tuple2<String, Long>> ownerAndPetIdsFlux = owners
                 .flatMap(owner -> {
                     Flux<Long> petIds = pets
                             .filter(pet -> Objects.equals(pet.getOwner_id(), owner.getId()))
                             .map(Pet::getId)
                             .sort((id1, id2) -> id2.compareTo(id1)); // Ordenar em ordem decrescente
                     return petIds
-                            .collectList()
                             .map(petIdList -> Tuples.of(owner.getName(), petIdList));
                 });
 
         //colocar tudo em Flux de strings
         return ownerAndPetIdsFlux.map(tuple -> {
             String nome = tuple.getT1();
-            List<Long> petIds = tuple.getT2();
+            Long petIds = tuple.getT2();
             return "Proprietário " + nome + " ->  Lista de id's PETS " + petIds;
         });
 
@@ -232,39 +235,33 @@ public class Main {
 
     //ex 9
     public static Flux<String> NameOfOwnerandNameOfRespectivePets() {
-        //todos os pets
         Flux<Pet> pets = webClient.get()
                 .uri(URL + "/pet/getAllPets")
                 .retrieve().bodyToFlux(Pet.class);
-        //todos os owners
+
         Flux<Owner> owners = webClient.get()
                 .uri(URL + "/owner/getAllOwners")
                 .retrieve().bodyToFlux(Owner.class);
 
-        // ligação dos owners com os seus pets --> ATENÇÃO VER A QUESTÃO DO CollectList
-        Flux<Tuple2<String, List<String>>> ownerAndPetIdsFlux = owners
-                .flatMap(owner -> {
-                    Flux<String> petIds = pets
-                            .filter(pet -> Objects.equals(pet.getOwner_id(), owner.getId()))
-                            .map(Pet::getName)
-                            .sort((id1, id2) -> id2.compareTo(id1)); // Ordenar em ordem decrescente
-                    return petIds
-                            .collectList()
-                            .map(petIdList -> Tuples.of(owner.getName(), petIdList));
-                });
+        Flux<Tuple2<String, String>> ownerAndPetNameFlux = owners.flatMap(owner ->
+                pets.filter(pet -> Objects.equals(pet.getOwner_id(), owner.getId()))
+                        .map(Pet::getName)
+                        .map(petName -> Tuples.of(owner.getName(), petName))
+                        .sort((id1, id2) -> id2.getT2().compareTo(id1.getT2()))
+        );
 
-        //colocar tudo em Flux de strings
-        return ownerAndPetIdsFlux.map(tuple -> {
-            String nome = tuple.getT1();
-            List<String> petIds = tuple.getT2();
-            return "Proprietário " + nome + " ->  Lista de nomes PETS " + petIds;
+        return ownerAndPetNameFlux.map(tuple -> {
+            String ownerName = tuple.getT1();
+            String petName = tuple.getT2();
+            return "Proprietário " + ownerName + " -> Nome do PET: " + petName;
         });
-
     }
+
 
     //FUNCOES AUXILIARES PARA TRATAMENTO DE FICHEIROS
 
     public static void enviaFile(Object s, int i) {
+
         escritaFicheiro(s.toString(),  i);
 
     }
@@ -280,6 +277,7 @@ public class Main {
             try {
                 String s = "Results/resp"+i+".txt";
                 FileWriter myWriter = new FileWriter(s);
+                myWriter.write("");
                 myWriter.close();
             } catch (IOException e) {
                 System.out.println("An error occurred.");
@@ -299,7 +297,7 @@ public class Main {
             {
                 writer.write(info + "\n");
                 writer.close();
-                System.out.println("Escrita ao Ficheiro " + exerc );
+                System.out.println("Escrita\n ao Ficheiro " + exerc );
             }
         } catch (IOException e) {
             System.out.println("ERRO");
