@@ -17,6 +17,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
@@ -28,37 +29,30 @@ public class Main {
     static WebClient.Builder webClientBuilder = WebClient.builder();
     static WebClient webClient = webClientBuilder.build();
 
-    private static final Semaphore fileWriteSemaphore = new Semaphore(1);
-    private static final Semaphore programSemaphore = new Semaphore(0);
-    private static int classesProcessed = 0;
-    static Scheduler s = Schedulers.newParallel("parallel-scheduler", 4);
 
+
+    static CountDownLatch latch = new CountDownLatch(9);
+
+    public static int contador = 0;
     public static void main(String[] args) throws InterruptedException {
         LimpezaFicheiros();
-        Semaphore semaphore = new Semaphore(0);
-        getOwnersNameAndPhone().subscribe(s-> {enviaFile(s, 1); checkAndReleaseSemaphore(semaphore);});
-        getTotalNumberOfPets().subscribe(s-> {enviaFile(s, 2);checkAndReleaseSemaphore(semaphore);});
-        getTotalNumberOfDogs().subscribe(s-> {enviaFile(s, 3);checkAndReleaseSemaphore(semaphore);});
-        getAnimalsWithWeightGreaterThan(10).subscribe(s-> {enviaFile(s, 4);checkAndReleaseSemaphore(semaphore);});
-        getAverageStandardDeviationsOfAnimalWeights().subscribe(s-> {enviaFile(s, 5);checkAndReleaseSemaphore(semaphore);});
-        getNameOfEldestPet().subscribe(s-> {enviaFile(s, 6);checkAndReleaseSemaphore(semaphore);});
-        calculateAverageWeightOfPetsWithOwnersHavingMoreThanOnePet().subscribe(s-> {enviaFile(s, 7);checkAndReleaseSemaphore(semaphore);});
-        NameOfOwnerandNumberOfRespectivePets().subscribe(s-> {enviaFile(s, 8);checkAndReleaseSemaphore(semaphore);});
-        NameOfOwnerandNameOfRespectivePets().subscribe(s-> {enviaFile(s,9);checkAndReleaseSemaphore(semaphore);});
-        semaphore.acquire();
-        s.dispose();
+
+        getOwnersNameAndPhone().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s, 1));
+        getTotalNumberOfPets().subscribe(s-> {enviaFile(s, 2);latch.countDown();});
+        getTotalNumberOfDogs().subscribe(s-> {enviaFile(s, 3);latch.countDown();});
+        getAnimalsWithWeightGreaterThan(10).doOnComplete(latch::countDown).subscribe(s-> enviaFile(s, 4));
+        getAverageStandardDeviationsOfAnimalWeights().subscribe(s-> {enviaFile(s, 5);latch.countDown();});
+        getNameOfEldestPet().subscribe(s-> {enviaFile(s, 6);latch.countDown();});
+        calculateAverageWeightOfPetsWithOwnersHavingMoreThanOnePet().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s, 7));
+        NameOfOwnerandNumberOfRespectivePets().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s,8 ));
+        NameOfOwnerandNameOfRespectivePets().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s,9));
 
 
-        //sleep(1000);
+        latch.await();
+
 
     }
 
-
-    private static void checkAndReleaseSemaphore(Semaphore semaphore) {
-        if (fileWriteSemaphore.availablePermits() == 1) {
-            semaphore.release();
-        }
-    }
 
 
     //ex1
@@ -261,7 +255,7 @@ public class Main {
     //FUNCOES AUXILIARES PARA TRATAMENTO DE FICHEIROS
 
     public static void enviaFile(Object s, int i) {
-
+        contador++;
         escritaFicheiro(s.toString(),  i);
 
     }
@@ -272,7 +266,7 @@ public class Main {
                 System.out.println("Ficheiro criado!!");
             }
         }
-        for (int i = 1; i<9; i++)
+        for (int i = 1; i<=9; i++)
         {
             try {
                 String s = "Results/resp"+i+".txt";
@@ -297,7 +291,7 @@ public class Main {
             {
                 writer.write(info + "\n");
                 writer.close();
-                System.out.println("Escrita\n ao Ficheiro " + exerc );
+                System.out.println("Escrita ao Ficheiro " + exerc );
             }
         } catch (IOException e) {
             System.out.println("ERRO");
