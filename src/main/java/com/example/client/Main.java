@@ -3,6 +3,7 @@ package com.example.client;
 import com.example.client.entidades.Owner;
 import com.example.client.entidades.Pet;
 import com.example.client.entidades.PetStatistics;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -11,7 +12,9 @@ import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
-
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -36,7 +39,9 @@ public class Main {
     public static int contador = 0;
     public static void main(String[] args) throws InterruptedException {
         LimpezaFicheiros();
+        getOwnersNameAndPhoneRetry().subscribe(s-> {enviaFile(s, 0);});
 
+        sleep(5000); // para dar tempo a que o retry acabe
         getOwnersNameAndPhone().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s, 1));
         getTotalNumberOfPets().subscribe(s-> {enviaFile(s, 2);latch.countDown();});
         getTotalNumberOfDogs().subscribe(s-> {enviaFile(s, 3);latch.countDown();});
@@ -53,7 +58,14 @@ public class Main {
 
     }
 
-
+    public static Flux<String> getOwnersNameAndPhoneRetry() {
+        return webClient.get()
+                .uri(URL + "/owner/getAllOwnersRetry")
+                .retrieve()
+                .bodyToFlux(Owner.class)
+                .retry(3)
+                .map(o -> o.getName() + " " + o.getTelephone_number());
+    }
 
     //ex1
     public static Flux<String> getOwnersNameAndPhone() {
@@ -266,7 +278,7 @@ public class Main {
                 System.out.println("Ficheiro criado!!");
             }
         }
-        for (int i = 1; i<=9; i++)
+        for (int i = 0; i<=9; i++)
         {
             try {
                 String s = "Results/resp"+i+".txt";

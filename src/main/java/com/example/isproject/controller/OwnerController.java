@@ -21,10 +21,27 @@ public class OwnerController {
     static final Logger logger = LoggerFactory.getLogger(OwnerController.class);
     private final OwnerService owner_service;
 
+    static int count = 1;
+
+    @GetMapping("/getAllOwnersRetry")
+    public Flux<Owner> getAllOwnersRetry() {
+        if(count<4){
+            logger.info("Getting all owners " + count + " time(s)");
+            count++;
+            return Flux.error(new RuntimeException("Simulated network failure"));
+        }else{
+            count = 1;
+            logger.info("Getting all owners finally");
+            return owner_service.getAllOwners();
+        }
+
+    }
+
     @GetMapping("/getAllOwners")
     public Flux<Owner> getAllOwners() {
         logger.info("Getting all owners");
         return owner_service.getAllOwners();
+
     }
 
     @GetMapping("/getOwner/{id}")
