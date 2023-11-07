@@ -73,7 +73,6 @@ public class Main {
                 .uri(URL + "/owner/getAllOwners")
                 .retrieve()
                 .bodyToFlux(Owner.class)
-                .retry(3)
                 .map(o -> o.getName() + " " + o.getTelephone_number());
     }
 
@@ -121,7 +120,6 @@ public class Main {
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
                 .bodyToFlux(Pet.class)
-
                 .collect(() -> new PetStatistics(0, 0, 0), (petStatistics, pet) -> {
                     double weight = pet.getWeight();
                     petStatistics.totalWeight += weight;
@@ -153,8 +151,6 @@ public class Main {
 
     public static Flux<String> calculateAverageWeightOfPetsWithOwnersHavingMoreThanOnePet() {
 
-
-
         Flux<Pet> pets = webClient.get()
                 .uri(URL + "/pet/getAllPets")
                 .retrieve().bodyToFlux(Pet.class);
@@ -164,16 +160,11 @@ public class Main {
                 .groupBy(Pet::getOwner_id)
                 .flatMap(ownerGroup -> ownerGroup
                         .count()
+                        .filter(count -> count > 1)
                         .map(count -> Tuples.of(ownerGroup.key(), count))
                 );
 
-
-        // apenas owners com mais de um pet
-        Flux<Tuple2<Integer, Long>> ownersWithMoreThanOnePet = petCountsByOwner
-                .filter(tuple -> tuple.getT2() > 1);
-
-
-        Flux<Tuple3<Integer, Double, Double>> statisticsByOwner = ownersWithMoreThanOnePet
+        Flux<Tuple3<Integer, Double, Double>> statisticsByOwner = petCountsByOwner
                 .flatMap(ownerTuple -> {
                     Integer ownerId = ownerTuple.getT1();
                     Flux<Integer> petWeights = pets
@@ -195,13 +186,14 @@ public class Main {
                                 double variance = (stats[1] / stats[2]) - (mean * mean);
                                 double stdDev = Math.sqrt(variance);
                                 return Tuples.of(ownerId, mean, stdDev);
-                            });   });
+                            });
+                });
 
         return statisticsByOwner.map(tuple -> {
-            Integer ownerId = tuple.getT1();
+            Integer owner = tuple.getT1();
             Double mean = tuple.getT2();
             Double standardDeviation = tuple.getT3();
-            return "Proprietário ID: " + ownerId + ", Média de Peso: " + mean + ", Desvio Padrão de Peso: " + standardDeviation;
+            return "Proprietário ID: " + owner + ", Média de Peso: " + mean + ", Desvio Padrão de Peso: " + standardDeviation;
         });
     }
 
