@@ -1,1 +1,1 @@
-Média de pesos: 11.581395348837209, Desvio Padrão: 3.861776873210358
+Média de pesos: 11.840909090909092, Desvio Padrão: 4.009021571704156
