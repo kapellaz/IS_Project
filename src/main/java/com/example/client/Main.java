@@ -7,23 +7,14 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Semaphore;
-
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import static java.lang.Thread.sleep;
 
@@ -55,16 +46,17 @@ public class Main {
 
         latch.await();
 
-
     }
 
     public static Flux<String> getOwnersNameAndPhoneRetry() {
         return webClient.get()
                 .uri(URL + "/owner/getAllOwnersRetry")
                 .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Owner.class)
                 .retry(3)
-                .map(o -> o.getName() + " " + o.getTelephone_number());
+                .map(o -> o.getName() + " " + o.getTelephone_number())
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
 
     //ex1
@@ -72,19 +64,26 @@ public class Main {
         return webClient.get()
                 .uri(URL + "/owner/getAllOwners")
                 .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Owner.class)
-                .map(o -> o.getName() + " " + o.getTelephone_number());
+                .retry(3)
+                .map(o -> o.getName() + " " + o.getTelephone_number())
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
-
     //ex2
+
+
+
 
     public static Mono<Long> getTotalNumberOfPets() {
         return webClient.get()
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
                 .log()
-                .count();
+                .count()
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
 
 
@@ -94,10 +93,12 @@ public class Main {
         return webClient.get()
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
                 .filter(p -> p.getSpecies().equals("Dog"))
                 .log()
-                .count();
+                .count()
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
 
 
@@ -106,11 +107,12 @@ public class Main {
         return webClient.get()
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
                 .filter(p -> p.getWeight() > weight)
-
                 .log()
-                .sort((p1, p2) -> p1.getWeight() - p2.getWeight());
+                .sort((p1, p2) -> p1.getWeight() - p2.getWeight())
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
 
     //ex5
@@ -119,6 +121,7 @@ public class Main {
         return webClient.get()
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
                 .collect(() -> new PetStatistics(0, 0, 0), (petStatistics, pet) -> {
                     double weight = pet.getWeight();
@@ -127,7 +130,8 @@ public class Main {
                     petStatistics.sumOfSquares += Math.pow(weight - petStatistics.averageWeight(), 2);
                 })
                 .map(PetStatistics::result)
-                .log();
+                .log()
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
 
 
@@ -137,11 +141,13 @@ public class Main {
         return webClient.get()
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
                 .sort((p1, p2) -> p2.getBirthdate().compareTo(p1.getBirthdate()))
                 .last()
                 .log()
-                .map(Pet::getName);
+                .map(Pet::getName)
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
 
 
@@ -152,7 +158,10 @@ public class Main {
 
         Flux<Pet> pets = webClient.get()
                 .uri(URL + "/pet/getAllPets")
-                .retrieve().bodyToFlux(Pet.class);
+                .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
+                .bodyToFlux(Pet.class)
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
 
 
         Flux<Long> petCounts = pets
@@ -170,7 +179,8 @@ public class Main {
                     return new PetStatistics(newTotal, newCount, 0.0);
                 });
 
-        return statistics.map(result ->  result.averageWeight());
+
+        return statistics.map(PetStatistics::averageWeight);
 
 
 
@@ -183,11 +193,17 @@ public class Main {
         //todos os pets
         Flux<Pet> pets = webClient.get()
                 .uri(URL + "/pet/getAllPets")
-                .retrieve().bodyToFlux(Pet.class);
+                .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
+                .bodyToFlux(Pet.class)
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
         //todos os owners
         Flux<Owner> owners = webClient.get()
                 .uri(URL + "/owner/getAllOwners")
-                .retrieve().bodyToFlux(Owner.class);
+                .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
+                .bodyToFlux(Owner.class)
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
 
 
         Flux<Tuple2<String, Long>> ownerAndPetIdsFlux = owners
@@ -198,7 +214,8 @@ public class Main {
                             .sort((id1, id2) -> id2.compareTo(id1)); // Ordenar em ordem decrescente
                     return petIds
                             .map(petIdList -> Tuples.of(owner.getName(), petIdList));
-                });
+                })
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
 
         //colocar tudo em Flux de strings
         return ownerAndPetIdsFlux.map(tuple -> {
@@ -214,18 +231,24 @@ public class Main {
     public static Flux<String> NameOfOwnerandNameOfRespectivePets() {
         Flux<Pet> pets = webClient.get()
                 .uri(URL + "/pet/getAllPets")
-                .retrieve().bodyToFlux(Pet.class);
+                .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
+                .bodyToFlux(Pet.class)
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
 
         Flux<Owner> owners = webClient.get()
                 .uri(URL + "/owner/getAllOwners")
-                .retrieve().bodyToFlux(Owner.class);
+                .retrieve()
+                .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
+                .bodyToFlux(Owner.class)
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
 
         Flux<Tuple2<String, String>> ownerAndPetNameFlux = owners.flatMap(owner ->
                 pets.filter(pet -> Objects.equals(pet.getOwner_id(), owner.getId()))
                         .map(Pet::getName)
                         .map(petName -> Tuples.of(owner.getName(), petName))
                         .sort((id1, id2) -> id2.getT2().compareTo(id1.getT2()))
-        );
+        ).doOnError(e -> System.out.println("Erro: " + e.getMessage()));
 
         return ownerAndPetNameFlux.map(tuple -> {
             String ownerName = tuple.getT1();
