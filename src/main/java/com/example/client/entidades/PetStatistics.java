@@ -1,18 +1,18 @@
 package com.example.client.entidades;
 
 public class PetStatistics {
-    public double totalWeight;
+    public double total;
     public int count;
     public double sumOfSquares;
 
-    public PetStatistics(double totalWeight, int count, double sumOfSquares) {
-        this.totalWeight = totalWeight;
+    public PetStatistics(double total, int count, double sumOfSquares) {
+        this.total = total;
         this.count = count;
         this.sumOfSquares = sumOfSquares;
     }
 
     public double averageWeight() {
-        return totalWeight / count;
+        return total / count;
     }
 
     public double standardDeviation() {

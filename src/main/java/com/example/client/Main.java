@@ -48,7 +48,7 @@ public class Main {
         getAnimalsWithWeightGreaterThan(10).doOnComplete(latch::countDown).subscribe(s-> enviaFile(s, 4));
         getAverageStandardDeviationsOfAnimalWeights().subscribe(s-> {enviaFile(s, 5);latch.countDown();});
         getNameOfEldestPet().subscribe(s-> {enviaFile(s, 6);latch.countDown();});
-        calculateAverageWeightOfPetsWithOwnersHavingMoreThanOnePet().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s, 7));
+        calculateAverageOfPetsWithOwnersHavingMoreThanOnePet().subscribe(s-> {enviaFile(s, 7);latch.countDown();});
         NameOfOwnerandNumberOfRespectivePets().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s,8 ));
         NameOfOwnerandNameOfRespectivePets().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s,9));
 
@@ -122,7 +122,7 @@ public class Main {
                 .bodyToFlux(Pet.class)
                 .collect(() -> new PetStatistics(0, 0, 0), (petStatistics, pet) -> {
                     double weight = pet.getWeight();
-                    petStatistics.totalWeight += weight;
+                    petStatistics.total += weight;
                     petStatistics.count++;
                     petStatistics.sumOfSquares += Math.pow(weight - petStatistics.averageWeight(), 2);
                 })
@@ -138,7 +138,6 @@ public class Main {
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
                 .bodyToFlux(Pet.class)
-
                 .sort((p1, p2) -> p2.getBirthdate().compareTo(p1.getBirthdate()))
                 .last()
                 .log()
@@ -149,52 +148,32 @@ public class Main {
 
     //ex7
 
-    public static Flux<String> calculateAverageWeightOfPetsWithOwnersHavingMoreThanOnePet() {
+    public static Mono<Double> calculateAverageOfPetsWithOwnersHavingMoreThanOnePet() {
 
         Flux<Pet> pets = webClient.get()
                 .uri(URL + "/pet/getAllPets")
                 .retrieve().bodyToFlux(Pet.class);
 
-        // Agrupar os animais pelo ID do proprietário
-       Flux<Tuple2<Integer, Long>> petCountsByOwner = pets
+
+        Flux<Long> petCounts = pets
                 .groupBy(Pet::getOwner_id)
                 .flatMap(ownerGroup -> ownerGroup
                         .count()
                         .filter(count -> count > 1)
-                        .map(count -> Tuples.of(ownerGroup.key(), count))
-                );
+                )
+                .map(count ->  count);
 
-        Flux<Tuple3<Integer, Double, Double>> statisticsByOwner = petCountsByOwner
-                .flatMap(ownerTuple -> {
-                    Integer ownerId = ownerTuple.getT1();
-                    Flux<Integer> petWeights = pets
-                            .filter(pet -> pet.getOwner_id().equals(ownerId))
-                            .map(Pet::getWeight);
-
-                    return petWeights
-                            .reduce(
-                                    new double[]{0.0, 0.0, 0},
-                                    (stats, weight) -> {
-                                        stats[0] += weight;
-                                        stats[1] += weight * weight;
-                                        stats[2]++;
-                                        return stats;
-                                    }
-                            )
-                            .map(stats -> {
-                                double mean = stats[0] / stats[2];
-                                double variance = (stats[1] / stats[2]) - (mean * mean);
-                                double stdDev = Math.sqrt(variance);
-                                return Tuples.of(ownerId, mean, stdDev);
-                            });
+        Mono<PetStatistics> statistics = petCounts
+                .reduce(new PetStatistics(0.0, 0, 0.0), (accumulator, count) -> {
+                    double newTotal = accumulator.total + count;
+                    int newCount = accumulator.count + 1;
+                    return new PetStatistics(newTotal, newCount, 0.0);
                 });
 
-        return statisticsByOwner.map(tuple -> {
-            Integer owner = tuple.getT1();
-            Double mean = tuple.getT2();
-            Double standardDeviation = tuple.getT3();
-            return "Proprietário ID: " + owner + ", Média de Peso: " + mean + ", Desvio Padrão de Peso: " + standardDeviation;
-        });
+        return statistics.map(result ->  result.averageWeight());
+
+
+
     }
 
 
