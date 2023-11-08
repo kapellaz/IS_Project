@@ -1,3 +1,8 @@
+Proprietário José -> Nome do PET: Max
+Proprietário José -> Nome do PET: Lucy
+Proprietário José -> Nome do PET: Daisy
+Proprietário José -> Nome do PET: Cooper
+Proprietário José -> Nome do PET: Bella
 Proprietário Miguel -> Nome do PET: Tucker
 Proprietário Miguel -> Nome do PET: Sophie
 Proprietário Miguel -> Nome do PET: Oliver
@@ -5,7 +10,6 @@ Proprietário Miguel -> Nome do PET: Luna
 Proprietário Miguel -> Nome do PET: Leo
 Proprietário Luis -> Nome do PET: Simba
 Proprietário Luis -> Nome do PET: Rocky
-Proprietário Luis -> Nome do PET: RUI
 Proprietário Luis -> Nome do PET: Molly
 Proprietário Luis -> Nome do PET: Misty
 Proprietário Luis -> Nome do PET: Buddy
@@ -28,16 +32,13 @@ Proprietário Ricardo -> Nome do PET: Muffin
 Proprietário Ricardo -> Nome do PET: Maximus
 Proprietário Ricardo -> Nome do PET: LolaC
 Proprietário Ricardo -> Nome do PET: Duke
-Proprietário Nuno -> Nome do PET: Misty
 Proprietário João -> Nome do PET: Sasha
 Proprietário João -> Nome do PET: Rusty
 Proprietário Samuel -> Nome do PET: Ziggy
 Proprietário Samuel -> Nome do PET: Simba
 Proprietário Samuel -> Nome do PET: Rosie
+Proprietário Samuel -> Nome do PET: Olive
+Proprietário Samuel -> Nome do PET: Maddie
 Proprietário Samuel -> Nome do PET: Luna
 Proprietário Samuel -> Nome do PET: Buddy
-Proprietário André -> Nome do PET: Max
-Proprietário André -> Nome do PET: Lucy
-Proprietário André -> Nome do PET: Daisy
-Proprietário André -> Nome do PET: Cooper
-Proprietário André -> Nome do PET: Bella
+Proprietário Nuno -> Nome do PET: Misty
