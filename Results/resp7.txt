@@ -1,13 +1,1 @@
-<<<<<<< HEAD
 4.777777777777778
-=======
-Proprietário ID: 10, Média de Peso: 12.571428571428571, Desvio Padrão de Peso: 5.778213833187624
-Proprietário ID: 6, Média de Peso: 11.2, Desvio Padrão de Peso: 4.019950248448358
-Proprietário ID: 5, Média de Peso: 9.75, Desvio Padrão de Peso: 3.960744879438715
-Proprietário ID: 2, Média de Peso: 11.8, Desvio Padrão de Peso: 4.399999999999999
-Proprietário ID: 4, Média de Peso: 11.4, Desvio Padrão de Peso: 1.85472369909914
-Proprietário ID: 7, Média de Peso: 13.2, Desvio Padrão de Peso: 1.7204650534085277
-Proprietário ID: 3, Média de Peso: 14.2, Desvio Padrão de Peso: 4.707440918375931
-Proprietário ID: 9, Média de Peso: 9.5, Desvio Padrão de Peso: 3.5
-Proprietário ID: 1, Média de Peso: 10.4, Desvio Padrão de Peso: 2.4166091947189123
->>>>>>> 23e4b958ab2adc38a6e79182b51cfe22763582ca
