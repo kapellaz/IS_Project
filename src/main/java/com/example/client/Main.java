@@ -57,7 +57,7 @@ public class Main {
                 .bodyToFlux(Owner.class)
                 .retry(3)
                 .map(o -> o.getName() + " " + o.getTelephone_number())
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
     }
 
     //ex1
@@ -70,7 +70,8 @@ public class Main {
                 .retry(3)
                 .map(o -> o.getName() + " " + o.getTelephone_number())
                 .doOnNext(p -> System.out.println("getOwnersNameAndPhone " + Thread.currentThread().getName()))
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .log()
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
     }
     //ex2
 
@@ -85,7 +86,8 @@ public class Main {
                 .bodyToFlux(Pet.class)
                 .count()
                 .doOnNext(p -> System.out.println("getTotalNumberOfPets " + Thread.currentThread().getName()))
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .log()
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
     }
 
 
@@ -100,7 +102,8 @@ public class Main {
                 .filter(p -> p.getSpecies().equals("Dog"))
                 .count()
                 .doOnNext(p -> System.out.println("getTotalNumberOfDogs " + Thread.currentThread().getName()))
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .log()
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
     }
 
 
@@ -114,7 +117,8 @@ public class Main {
                 .filter(p -> p.getWeight() > weight)
                 .sort((p1, p2) -> p1.getWeight() - p2.getWeight())
                 .doOnNext(p -> System.out.println("getAnimalsWithWeightGreaterThan " + Thread.currentThread().getName()))
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .log()
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
     }
 
     //ex5
@@ -133,7 +137,8 @@ public class Main {
                 })
                 .map(PetStatistics::result)
                 .doOnNext(s -> System.out.println("getAverageStandardDeviationsOfAnimalWeights " + Thread.currentThread().getName()))
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .log()
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
 
     }
 
@@ -150,7 +155,8 @@ public class Main {
                 .last()
                 .map(Pet::getName)
                 .doOnNext(p -> System.out.println("getNameOfEldestPet " + Thread.currentThread().getName()))
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .log()
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
     }
 
 
@@ -163,7 +169,7 @@ public class Main {
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()))
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();})
                 .groupBy(Pet::getOwner_id)
                 .flatMap(ownerGroup -> ownerGroup
                         .count()
@@ -195,14 +201,14 @@ public class Main {
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
         //todos os owners
         Flux<Owner> owners = webClient.get()
                 .uri(URL + "/owner/getAllOwners")
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Owner.class)
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
 
 
         Flux<Tuple2<String, Long>> ownerAndPetIdsFlux = owners
@@ -214,7 +220,7 @@ public class Main {
                     return petIds
                             .map(petIdList -> Tuples.of(owner.getName(), petIdList));
                 })
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
         System.out.println("NameOfOwnerandNumberOfRespectivePets " + Thread.currentThread().getName());
         //colocar tudo em Flux de strings
         return ownerAndPetIdsFlux.map(tuple -> {
@@ -233,21 +239,21 @@ public class Main {
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
 
         Flux<Owner> owners = webClient.get()
                 .uri(URL + "/owner/getAllOwners")
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Owner.class)
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+                .doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
 
         Flux<Tuple2<String, String>> ownerAndPetNameFlux = owners.flatMap(owner ->
                 pets.filter(pet -> Objects.equals(pet.getOwner_id(), owner.getId()))
                         .map(Pet::getName)
                         .map(petName -> Tuples.of(owner.getName(), petName))
                         .sort((id1, id2) -> id2.getT2().compareTo(id1.getT2()))
-        ).doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+        ).doOnError(e -> {System.out.println("Erro: " + e.getMessage()); latch.countDown();});
 
         System.out.println("NameOfOwnerandNameOfRespectivePets " + Thread.currentThread().getName());
         return ownerAndPetNameFlux.map(tuple -> {
