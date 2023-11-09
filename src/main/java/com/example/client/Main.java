@@ -7,8 +7,9 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
-import reactor.util.function.Tuple3;
 import reactor.util.function.Tuples;
 import java.io.File;
 import java.io.FileWriter;
@@ -24,7 +25,7 @@ public class Main {
     static WebClient webClient = webClientBuilder.build();
 
 
-
+    static Scheduler s = Schedulers.newParallel("parallel-scheduler", 9);
     static CountDownLatch latch = new CountDownLatch(9);
 
     public static int contador = 0;
@@ -33,18 +34,18 @@ public class Main {
         getOwnersNameAndPhoneRetry().subscribe(s-> {enviaFile(s, 0);});
 
         sleep(5000); // para dar tempo a que o retry acabe
-        getOwnersNameAndPhone().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s, 1));
-        getTotalNumberOfPets().subscribe(s-> {enviaFile(s, 2);latch.countDown();});
-        getTotalNumberOfDogs().subscribe(s-> {enviaFile(s, 3);latch.countDown();});
-        getAnimalsWithWeightGreaterThan(10).doOnComplete(latch::countDown).subscribe(s-> enviaFile(s, 4));
-        getAverageStandardDeviationsOfAnimalWeights().subscribe(s-> {enviaFile(s, 5);latch.countDown();});
-        getNameOfEldestPet().subscribe(s-> {enviaFile(s, 6);latch.countDown();});
-        calculateAverageOfPetsWithOwnersHavingMoreThanOnePet().subscribe(s-> {enviaFile(s, 7);latch.countDown();});
-        NameOfOwnerandNumberOfRespectivePets().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s,8 ));
-        NameOfOwnerandNameOfRespectivePets().doOnComplete(latch::countDown).subscribe(s-> enviaFile(s,9));
-
+        getOwnersNameAndPhone().doOnComplete(latch::countDown).subscribeOn(s).subscribe(s-> enviaFile(s, 1));
+        getTotalNumberOfPets().subscribeOn(s).subscribe(s-> {enviaFile(s, 2);latch.countDown();});
+        getTotalNumberOfDogs().subscribeOn(s).subscribe(s-> {enviaFile(s, 3);latch.countDown();});
+        getAnimalsWithWeightGreaterThan(10).subscribeOn(s).doOnComplete(latch::countDown).subscribe(s-> enviaFile(s, 4));
+        getAverageStandardDeviationsOfAnimalWeights().subscribeOn(s).subscribe(s-> {enviaFile(s, 5);latch.countDown();});
+        getNameOfEldestPet().subscribeOn(s).subscribe(s-> {enviaFile(s, 6);latch.countDown();});
+        calculateAverageOfPetsWithOwnersHavingMoreThanOnePet().subscribeOn(s).subscribe(s-> {enviaFile(s, 7);latch.countDown();});
+        NameOfOwnerandNumberOfRespectivePets().subscribeOn(s).doOnComplete(latch::countDown).subscribe(s-> enviaFile(s,8 ));
+        NameOfOwnerandNameOfRespectivePets().subscribeOn(s).doOnComplete(latch::countDown).subscribe(s-> enviaFile(s,9));
 
         latch.await();
+        s.dispose();
 
     }
 
@@ -68,6 +69,7 @@ public class Main {
                 .bodyToFlux(Owner.class)
                 .retry(3)
                 .map(o -> o.getName() + " " + o.getTelephone_number())
+                .doOnNext(p -> System.out.println("getOwnersNameAndPhone " + Thread.currentThread().getName()))
                 .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
     //ex2
@@ -81,8 +83,8 @@ public class Main {
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
-                .log()
                 .count()
+                .doOnNext(p -> System.out.println("getTotalNumberOfPets " + Thread.currentThread().getName()))
                 .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
 
@@ -96,8 +98,8 @@ public class Main {
                 .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
                 .filter(p -> p.getSpecies().equals("Dog"))
-                .log()
                 .count()
+                .doOnNext(p -> System.out.println("getTotalNumberOfDogs " + Thread.currentThread().getName()))
                 .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
 
@@ -110,8 +112,8 @@ public class Main {
                 .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
                 .filter(p -> p.getWeight() > weight)
-                .log()
                 .sort((p1, p2) -> p1.getWeight() - p2.getWeight())
+                .doOnNext(p -> System.out.println("getAnimalsWithWeightGreaterThan " + Thread.currentThread().getName()))
                 .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
 
@@ -127,11 +129,12 @@ public class Main {
                     double weight = pet.getWeight();
                     petStatistics.total += weight;
                     petStatistics.count++;
-                    petStatistics.sumOfSquares += Math.pow(weight - petStatistics.averageWeight(), 2);
+                    petStatistics.sumOfSquares += Math.pow(weight - petStatistics.average(), 2);
                 })
                 .map(PetStatistics::result)
-                .log()
+                .doOnNext(s -> System.out.println("getAverageStandardDeviationsOfAnimalWeights " + Thread.currentThread().getName()))
                 .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
+
     }
 
 
@@ -145,8 +148,8 @@ public class Main {
                 .bodyToFlux(Pet.class)
                 .sort((p1, p2) -> p2.getBirthdate().compareTo(p1.getBirthdate()))
                 .last()
-                .log()
                 .map(Pet::getName)
+                .doOnNext(p -> System.out.println("getNameOfEldestPet " + Thread.currentThread().getName()))
                 .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
     }
 
@@ -155,32 +158,28 @@ public class Main {
     //ex7
 
     public static Mono<Double> calculateAverageOfPetsWithOwnersHavingMoreThanOnePet() {
-
-        Flux<Pet> pets = webClient.get()
+        Flux<Long> pets = webClient.get()
                 .uri(URL + "/pet/getAllPets")
                 .retrieve()
                 .onStatus(HttpStatusCode::is5xxServerError, response -> Mono.error(new RuntimeException("Server Error")))
                 .bodyToFlux(Pet.class)
-                .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
-
-
-        Flux<Long> petCounts = pets
+                .doOnError(e -> System.out.println("Erro: " + e.getMessage()))
                 .groupBy(Pet::getOwner_id)
                 .flatMap(ownerGroup -> ownerGroup
                         .count()
                         .filter(count -> count > 1)
-                )
-                .map(count ->  count);
+                );
 
-        Mono<PetStatistics> statistics = petCounts
+        Mono<PetStatistics> statistics = pets
                 .reduce(new PetStatistics(0.0, 0, 0.0), (accumulator, count) -> {
                     double newTotal = accumulator.total + count;
                     int newCount = accumulator.count + 1;
                     return new PetStatistics(newTotal, newCount, 0.0);
                 });
+        System.out.println("calculateAverageOfPetsWithOwnersHavingMoreThanOnePet " + Thread.currentThread().getName());
 
 
-        return statistics.map(PetStatistics::averageWeight);
+        return statistics.map(PetStatistics::average);
 
 
 
@@ -216,7 +215,7 @@ public class Main {
                             .map(petIdList -> Tuples.of(owner.getName(), petIdList));
                 })
                 .doOnError(e -> System.out.println("Erro: " + e.getMessage()));
-
+        System.out.println("NameOfOwnerandNumberOfRespectivePets " + Thread.currentThread().getName());
         //colocar tudo em Flux de strings
         return ownerAndPetIdsFlux.map(tuple -> {
             String nome = tuple.getT1();
@@ -250,6 +249,7 @@ public class Main {
                         .sort((id1, id2) -> id2.getT2().compareTo(id1.getT2()))
         ).doOnError(e -> System.out.println("Erro: " + e.getMessage()));
 
+        System.out.println("NameOfOwnerandNameOfRespectivePets " + Thread.currentThread().getName());
         return ownerAndPetNameFlux.map(tuple -> {
             String ownerName = tuple.getT1();
             String petName = tuple.getT2();
@@ -297,7 +297,7 @@ public class Main {
             {
                 writer.write(info + "\n");
                 writer.close();
-                System.out.println("Escrita ao Ficheiro " + exerc );
+                //System.out.println("Escrita ao Ficheiro " + exerc );
             }
         } catch (IOException e) {
             System.out.println("ERRO");

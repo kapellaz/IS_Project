@@ -11,7 +11,7 @@ public class PetStatistics {
         this.sumOfSquares = sumOfSquares;
     }
 
-    public double averageWeight() {
+    public double average() {
         return total / count;
     }
 
@@ -20,6 +20,6 @@ public class PetStatistics {
     }
 
     public String result() {
-        return "Média de pesos: " + averageWeight() + ", Desvio Padrão: " + standardDeviation();
+        return "Média: " + average() + ", Desvio Padrão: " + standardDeviation();
     }
 }
