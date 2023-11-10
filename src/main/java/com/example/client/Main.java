@@ -303,7 +303,7 @@ public class Main {
             {
                 writer.write(info + "\n");
                 writer.close();
-                //System.out.println("Escrita ao Ficheiro " + exerc );
+                System.out.println("Escrita ao Ficheiro " + exerc );
             }
         } catch (IOException e) {
             System.out.println("ERRO");
